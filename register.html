@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Page</title>
+    <link rel="stylesheet" href="register.css"> <!-- Link to the register.css file -->
+</head>
+<body>
+
+    <div class="register-container">
+        <h2>Register</h2>
+        <form onsubmit="return simulateRegistration()">
+            <div class="input-group">
+                <label for="register-username">Username:</label>
+                <input type="text" id="register-username" required>
+            </div>
+            <div class="input-group">
+                <label for="register-password">Password:</label>
+                <input type="password" id="register-password" required>
+            </div>
+            <div class="input-group">
+                Already a user? <a href="./login.html"> login</a>
+            </div>
+            
+            <button type="submit">Register</button>
+            <p id="register-message"></p>
+        </form>
+    </div>
+    <script src="users.js"></script>
+    <script src="register.js"></script>
+</body>
+</html>

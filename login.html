@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="login.css"> <!-- Link to the login.css file -->
+</head>
+<body>
+
+    <div class="container">
+        <h2>Login</h2>
+        <form onsubmit="return simulateLogin()">
+            <div class="input-group">
+                <label for="login-username">Username:</label>
+                <input type="text" id="login-username" required>
+            </div>
+            <div class="input-group">
+                <label for="login-password">Password:</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <div class="input-group">
+                Don't have an account? <a href="./register.html" id="createAccount"> Register</a>
+            </div>
+            <button type="submit" class="btn">Login</button>
+            <p id="login-message"></p>
+        </form>
+    </div>
+    <script src="users.js"></script>
+    <script src="login.js"></script>
+
+
+</body>
+</html>
