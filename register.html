@@ -10,24 +10,25 @@
 
     <div class="register-container">
         <h2>Register</h2>
-        <form onsubmit="return simulateRegistration()">
+        <form id="registrationForm" action="/register" method="POST">
             <div class="input-group">
                 <label for="register-username">Username:</label>
-                <input type="text" id="register-username" required>
+    
+		<input type="text" id="register-username" name="username" required><br><br>
             </div>
             <div class="input-group">
                 <label for="register-password">Password:</label>
-                <input type="password" id="register-password" required>
+                
+		<input type="password" id="register-password" name="password" required><br><br>
             </div>
             <div class="input-group">
-                Already a user? <a href="./login.html"> login</a>
+                Already a user? <a href="./login"> login</a>
             </div>
             
-            <button type="submit" class="btn"> Register</button>
+            <input type="submit" value="Register">
             <p id="register-message"></p>
         </form>
     </div>
-    <script src="users.js"></script>
-    <script src="register.js"></script>
+    
 </body>
 </html>
