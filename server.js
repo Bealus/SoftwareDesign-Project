@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const port = 3000;
+const path = require('path')
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -10,7 +11,8 @@ app.use(express.json());
 const users = [];
 // users - add other details on push register, bool compltedProfile = false;, database different
 app.get('/register', (req, res) => {
-    res.sendFile(__dirname + '/register.html');
+    //res.sendFile(__dirname + '/register.html');
+    res.sendFile(path.join(__dirname, 'register.html'));
 });
 
 app.post('/register', (req, res) => {
@@ -39,7 +41,8 @@ app.post('/register', (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-    res.sendFile(__dirname + '/login.html');
+    //res.sendFile(__dirname + '/login.html');
+    res.sendFile(path.join(__dirname, 'login.html'));
 });
 
 app.post('/login', (req, res) => {
@@ -51,10 +54,10 @@ app.post('/login', (req, res) => {
     if (user) {
         if (user.isProfileCompleted) {
             // User's profile is completed, redirect to the homepage or another page
-            res.redirect('/quote'); // Replace with the actual URL of the homepage
+            res.redirect('/quote'); 
         } else {
             // User's profile is not completed, redirect to the complete profile page
-            res.redirect('/profile'); // Replace with the actual URL of the complete profile page
+            res.redirect('/profile'); 
         }
     } else {
         res.send('Invalid username or password');
@@ -62,12 +65,16 @@ app.post('/login', (req, res) => {
 });
 
 app.get('/quote', (req, res) => {
-    res.sendFile(__dirname + '/Fuel-Quote-Form.html');
+    //res.sendFile(__dirname + '/Fuel-Quote-Form.html');
+    res.sendFile(path.join(__dirname, 'Fuel-Quote-Form.html'));
 });
 
+
 app.get('/profile', (req, res) => {
-    res.sendFile(__dirname + '/complete-profile.html');
+    //res.sendFile(__dirname + '/complete-profile.html');
+    res.sendFile(path.join(__dirname, 'complete-profile.html'));
 });
+//implement post save profile attributes to database or array then send them to quote
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
