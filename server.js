@@ -3,21 +3,23 @@ const app = express();
 const port = 3000;
 const path = require('path')
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true })); // Add this middleware to parse form data
 app.use(express.json());
-//app.use(express.static('public')); // 'public' is the directory where your static files (including CSS) are located
+app.use(express.static('public')); // 'public' is the directory where your static files (including CSS) are located
 
 // In-memory storage for registered users (You should use a database in a real application)
 const users = [];
 // users - add other details on push register, bool compltedProfile = false;, database different
 app.get('/register', (req, res) => {
     //res.sendFile(__dirname + '/register.html');
-    res.sendFile(path.join(__dirname, 'register.html'));
+    res.sendFile(path.join(__dirname, '/public/register.html'));
 });
 
 app.post('/register', (req, res) => {
     const { username, password } = req.body;
-
+    //Test if data is being sent from front-end to back-end
+    //console.log(username); // Log the username
+    
     if (!username || !password ) {
         res.status(400).send('All fields are required');
       } else if (password.length < 6) {
@@ -30,22 +32,26 @@ app.post('/register', (req, res) => {
             password,
             isProfileCompleted: false,
         };
+        //console.log(newUser); // Log the username
         // Save the user in memory (In a real application, you would use a database)
         users.push(newUser);
 
         // Redirect to a login page or another page
-        res.redirect('/login');
-        //res.redirect('/profile');
+       res.redirect('/login');
+        
+        
         //res.status(200).sendFile(path.join(__dirname, 'login.html'));
     }
+    
 });
 
 app.get('/login', (req, res) => {
     //res.sendFile(__dirname + '/login.html');
-    res.sendFile(path.join(__dirname, 'login.html'));
+    res.sendFile(path.join(__dirname, '/public/login.html'));
 });
 
 app.post('/login', (req, res) => {
+    //Input from login form stored into username and password.
     const { username, password } = req.body;
     
     // Check if the username and password match any registered user
@@ -66,15 +72,54 @@ app.post('/login', (req, res) => {
 
 app.get('/quote', (req, res) => {
     //res.sendFile(__dirname + '/Fuel-Quote-Form.html');
-    res.sendFile(path.join(__dirname, 'Fuel-Quote-Form.html'));
+    res.sendFile(path.join(__dirname, '/public/Fuel-Quote-Form.html'));
 });
 
 
 app.get('/profile', (req, res) => {
     //res.sendFile(__dirname + '/complete-profile.html');
-    res.sendFile(path.join(__dirname, 'complete-profile.html'));
+    res.sendFile(path.join(__dirname, '/public/complete-profile.html'));
 });
 //implement post save profile attributes to database or array then send them to quote
+app.post('/profile', async (req, res) => {
+    const { username, fullName, address1, address2, city, state, zipcode } = req.body;
+    console.log(fullName);
+    try {
+        // Assuming the user is already authenticated during the profile update
+        // Directly update the user's profile in the database
+        const user = await users.findOne({ where: { username } });
+
+        // Update the user's profile in the database
+        user.fullName = fullName;
+        user.address1 = address1;
+        user.address2 = address2;
+        user.city = city;
+        user.state = state;
+        user.zipcode = zipcode;
+
+        // Set isProfileCompleted to true
+        user.isProfileCompleted = true;
+
+        // Save the updated user information
+        await user.save();
+
+        // Redirect to another page or send a success message
+        res.redirect('/quote');
+    } catch (error) {
+        console.error('Profile update error:', error);
+        res.status(500).send('Internal server error');
+    }
+});
+
+app.get('/', (req, res) => {
+    //res.sendFile(__dirname + '/complete-profile.html');
+    res.sendFile(path.join(__dirname, '/public/homepage.html'));
+});
+
+app.get('/history', (req, res) => {
+    //res.sendFile(__dirname + '/complete-profile.html');
+    res.sendFile(path.join(__dirname, '/public/history.html'));
+});
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
