@@ -75,7 +75,36 @@ app.get('/profile', (req, res) => {
     res.sendFile(path.join(__dirname, 'complete-profile.html'));
 });
 //implement post save profile attributes to database or array then send them to quote
+app.post('/profile', async (req, res) => {
+    const { username, fullName, address1, address2, city, state, zipcode } = req.body;
 
+    try {
+        // Assuming the user is already authenticated during the profile update
+        // You can directly update the user's profile in the 'users' object
+        const user = users.find(user => user.username === username);
+
+        if (!user) {
+            res.status(400).send('User not found');
+        } else {
+            // Update the user's profile in the 'users' object
+            user.fullName = fullName;
+            user.address1 = address1;
+            user.address2 = address2;
+            user.city = city;
+            user.state = state;
+            user.zipcode = zipcode;
+
+            // Set isProfileCompleted to true
+            user.isProfileCompleted = true;
+
+            // Redirect to another page or send a success message
+            res.redirect('/quote');
+        }
+    } catch (error) {
+        console.error('Profile update error:', error);
+        res.status(500).send('Internal server error');
+    }
+});
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
