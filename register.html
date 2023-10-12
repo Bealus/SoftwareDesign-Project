@@ -13,20 +13,18 @@
         <form id="registrationForm" action="/register" method="POST">
             <div class="input-group">
                 <label for="register-username">Username:</label>
-    
-		<input type="text" id="register-username" name="username" required><br><br>
+		        <input type="text" id="register-username" name="username" required>
             </div>
             <div class="input-group">
                 <label for="register-password">Password:</label>
-                
-		<input type="password" id="register-password" name="password" required><br><br>
+                <input type="password" id="register-password" name="password" required>
             </div>
             <div class="input-group">
-                Already a user? <a href="./login"> login</a>
+                Already a user? <a href="./login"> Login</a>
             </div>
             
             <input type="submit" value="Register">
-            <p id="register-message"></p>
+            <p id="error-message"></p>
         </form>
     </div>
     
