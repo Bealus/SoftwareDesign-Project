@@ -24,9 +24,39 @@
             </div>
             
             <input type="submit" value="Register">
-            <p id="error-message"></p>
+            <p id="register-message"></p>
         </form>
     </div>
+    
+    <script>
+        document.getElementById('registrationForm').addEventListener('submit', async (event) => {
+        event.preventDefault(); // prevents default form submission, instead using this custom JS
+
+        const username = document.getElementById('register-username').value;
+        const password = document.getElementById('register-password').value;
+
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password }),
+        });
+
+        const errorText = await response.text(); //waiting for text response
+
+        if (response.status === 400 && errorText) {
+            // Display the error message in the #error-message element
+            document.getElementById('register-message').textContent = errorText;
+        } else if (response.status === 200) {
+            // Handle a successful registration, e.g., redirect or show a success message
+            document.getElementById('register-message').textContent = errorText;
+            document.getElementById('register-message').style.color = 'green';
+            //window.location.href = '/login';
+        }
+        });
+    </script>
+    
     
 </body>
 </html>
