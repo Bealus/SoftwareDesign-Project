@@ -2,54 +2,77 @@ const express = require('express');
 const app = express();
 const port = 3000;
 const path = require('path')
+const mysql = require('mysql2');
+
+require('dotenv').config(); // Load environment variables from .env file
 
 app.use(express.urlencoded({ extended: true })); // Add this middleware to parse form data
 app.use(express.json());
 app.use(express.static('public')); // 'public' is the directory where your static files (including CSS) are located
 
-// In-memory storage for registered users (You should use a database in a real application)
-const users = [
-    {
-        username: 'user1',
-        password: 'password1',
-        isProfileCompleted: false,
-    },
-    {
-        username: 'user2',
-        password: 'password2',
-        isProfileCompleted: true,
-    },
-];
+
+// Create a connection pool for a locally installed MySQL server
+const pool = mysql.createPool({
+    host: process.env.DB_HOST, 
+    user: process.env.DB_USER, 
+    password: process.env.DB_PASSWORD, 
+    database: process.env.DB_DATABASE, 
+  });
+  
+  const promisePool = pool.promise();
+
+  promisePool
+    .query('SELECT 1')
+    .then(() => {
+        console.log('Database is connected');
+    })
+    .catch((error) => {
+        console.error('Database connection error:', error);
+    });
+
+  
+  // Now, you can use `promisePool` to execute queries on your local MySQL server.
+
 
 app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, '/public/register.html')); //Sends 200 status code by default.
 });
 
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
     const { username, password } = req.body;
+    var isProfileCompleted = 0;
     //Missing username or password
     if (!username || !password) {
         res.status(400).send('All fields are required');
     } else if (password.length < 6) {
         res.status(400).send('Password must be at least 6 characters long');
-    } else if (users.some(user => user.username === username)) {
-        res.status(400).send('Username already taken. Please choose another one.');
     } else {
-        //Send data to database
-        const newUser = {
-            username,
-            password,
-            isProfileCompleted: false,
-        };
-        
-        // Save the user in memory (In a real application, you would use a database)
-        users.push(newUser);
-        
-        //res.redirect('/login');
-        res.status(200).send('Registration successful');
+        // Check if the username already exists in the database
+        try {
+            // Check if the username already exists in the database
+            const [rows] = await promisePool.query('SELECT * FROM Users WHERE username = ?', [username]);
     
+            if (rows.length > 0) {
+                return res.status(400).send('Username already taken. Please choose another one.');
+            }
+    
+            // If the username doesn't exist, insert the new user into the database
+            await promisePool.query('INSERT INTO Users (username, password, profileComplete) VALUES (?, ?, ?)', [
+                username,
+                password,
+                isProfileCompleted // Assuming the profile is not completed initially
+            ]);
+    
+            return res.status(200).send('Registration successful');
+        } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') {
+                return res.status(400).send('Username already taken. Please choose another one.');
+            } else {
+                console.error('Error registering the user:', error);
+                return res.status(500).send('Internal server error');
+            }
+        }
     }
-    
 });
 
 app.get('/login', (req, res) => {
@@ -87,6 +110,7 @@ app.get('/profile', (req, res) => {
     res.sendFile(path.join(__dirname, '/public/complete-profile.html'));
 });
 //implement post save profile attributes to database or array then send them to quote
+/*
 app.post('/profile', async (req, res) => {
     const { username, fullName, address1, address2, city, state, zipcode } = req.body;
     console.log(fullName);
@@ -116,6 +140,7 @@ app.post('/profile', async (req, res) => {
         res.status(500).send('Internal server error');
     }
 });
+*/
 
 app.get('/', (req, res) => {
     //res.sendFile(__dirname + '/complete-profile.html');
@@ -130,4 +155,4 @@ app.get('/history', (req, res) => {
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
-module.exports = { app, users };
+//module.exports = { app, users };
