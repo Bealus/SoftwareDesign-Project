@@ -104,14 +104,8 @@ app.post('/login', async (req, res) => {
 
              // Store user information in the session
              req.session.user = user;
-
-            if (user.isProfileCompleted) {
-                // User's profile is completed, redirect to the homepage or another page
-                res.redirect('/quote');
-            } else {
-                // User's profile is not completed, redirect to the complete profile page
-                res.redirect('/profile');
-            }
+             res.redirect('/profile');
+            
         } else {
             // User not found in the database, send an invalid message
             res.status(401).send('Invalid username or password');
