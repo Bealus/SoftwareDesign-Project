@@ -7,12 +7,12 @@
 <body>
     <div id="profile-form">
         <h2>Client Profile</h2>
-        <form id="profile">
-            <input type="text" id="full-name" placeholder="Full Name" maxlength="50" required>
-            <input type="text" id="address-1" placeholder="Address 1" maxlength="100" required>
-            <input type="text" id="address-2" placeholder="Address 2" maxlength="100">
-            <input type="text" id="city" placeholder="City" maxlength="100" required>
-            <select id="state" required>
+        <form id="profile" action="/profile" method="post">
+            <input type="text" id="full-name" placeholder="Full Name" name="fullName" maxlength="50" required>
+            <input type="text" id="address-1" placeholder="Address 1" name="address1" maxlength="100" required>
+            <input type="text" id="address-2" placeholder="Address 2" name="address2" maxlength="100">
+            <input type="text" id="city" placeholder="City" name="city" maxlength="100" required>
+            <select id="state" name="state" required>
                <option value="AL">Alabama</option>
                 <option value="AK">Alaska</option>
                 <option value="AZ">Arizona</option>
@@ -64,8 +64,8 @@
                 <option value="WI">Wisconsin</option>
                 <option value="WY">Wyoming</option>
             </select>
-            <input type="text" id="zipcode" placeholder="Zipcode" minlength="5" maxlength="9" required>
-            <button type="submit">Save Profile</button>
+            <input type="text" id="zipcode" placeholder="Zipcode" name="zipcode" minlength="5" maxlength="9" required>
+            <input type="submit" value="save profile">
         </form>
     </div>
     <script src="complete-profile.js"></script>
