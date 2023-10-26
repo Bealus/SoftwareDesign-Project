@@ -123,46 +123,52 @@ app.post('/login', async (req, res) => {
 });
 
 app.get('/quote', (req, res) => {
-    //res.sendFile(__dirname + '/Fuel-Quote-Form.html');
-    res.sendFile(path.join(__dirname, '/public/Fuel-Quote-Form.html'));
-});
-
-
-app.get('/profile', (req, res) => {
+    
+    //res.sendFile(path.join(__dirname, '/public/Fuel-Quote-Form.html'));
     const user = req.session.user;
     // Check if the user is logged in (user data is in the session)
     if (user) {
         // Render the quote page
         console.log('User:', user); //Testing purpose, Check what user is logged in
-        res.sendFile(path.join(__dirname, '/public/complete-profile.html'));
+        res.sendFile(path.join(__dirname, '/public/Fuel-Quote-Form.html'));
     } else {
         // User is not logged in, redirect to the login page
         res.redirect('/login');
     }
 });
-//implement post save profile attributes to database or array then send them to quote
-/*
+
+
+app.get('/profile', async (req, res) => {
+    const user = req.session.user;
+    
+    if (user) {
+        // Check if the user is logged in and the profileComplete status
+        if (user.profileComplete === 0) {
+            // Profile is not complete, redirect to the profile page
+            res.sendFile(path.join(__dirname, '/public/complete-profile.html'));
+        } else if (user.profileComplete === 1) {
+            // Profile is complete, redirect to the quote page
+            res.redirect('/quote');
+        }
+    } else {
+        // User is not logged in, redirect to the login page
+        res.redirect('/login');
+    }
+});
+
 app.post('/profile', async (req, res) => {
-    const { username, fullName, address1, address2, city, state, zipcode } = req.body;
-    console.log(fullName);
+    const userId = req.session.user.id; // Get the user ID from the session
+    const { fullName, address1, address2, city, state, zipcode } = req.body;
+
     try {
-        // Assuming the user is already authenticated during the profile update
-        // Directly update the user's profile in the database
-        const user = await users.findOne({ where: { username } });
+        // Update the userInformation table with the new profile information
+        await promisePool.query(
+            'INSERT INTO userInformation (user_id, fullName, address1, address2, city, state, zipcode) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [userId, fullName, address1, address2, city, state, zipcode]
+        );
 
-        // Update the user's profile in the database
-        user.fullName = fullName;
-        user.address1 = address1;
-        user.address2 = address2;
-        user.city = city;
-        user.state = state;
-        user.zipcode = zipcode;
-
-        // Set isProfileCompleted to true
-        user.isProfileCompleted = true;
-
-        // Save the updated user information
-        await user.save();
+        // Set isProfileCompleted to true in the Users table
+        await promisePool.query('UPDATE Users SET profileComplete = ? WHERE id = ?', [1, userId]);
 
         // Redirect to another page or send a success message
         res.redirect('/quote');
@@ -171,7 +177,8 @@ app.post('/profile', async (req, res) => {
         res.status(500).send('Internal server error');
     }
 });
-*/
+
+
 
 app.get('/', (req, res) => {
     //res.sendFile(__dirname + '/complete-profile.html');
