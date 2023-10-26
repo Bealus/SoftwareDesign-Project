@@ -3,6 +3,8 @@ const app = express();
 const port = 3000;
 const path = require('path')
 const mysql = require('mysql2');
+const session = require('express-session');
+
 
 require('dotenv').config(); // Load environment variables from .env file
 
@@ -30,7 +32,17 @@ const pool = mysql.createPool({
         console.error('Database connection error:', error);
     });
 
-  
+  // Configure express-session middleware
+app.use(
+    session({
+        secret: 'your-secret-key', // Change this to a strong, random value
+        resave: false,
+        saveUninitialized: true,
+        cookie: {
+            maxAge: 1000 * 60 * 60 * 24, // Session duration (in milliseconds), e.g., 24 hours
+        },
+    })
+);
   // Now, you can use `promisePool` to execute queries on your local MySQL server.
 
 
@@ -79,23 +91,34 @@ app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, '/public/login.html'));
 });
 
-app.post('/login', (req, res) => {
-    //Input from login form stored into username and password.
+app.post('/login', async (req, res) => {
+    // Input from the login form stored into username and password.
     const { username, password } = req.body;
-    
-    // Check if the username and password match any registered user
-    const user = users.find(user => user.username === username && user.password === password);
 
-    if (user) {
-        if (user.isProfileCompleted) {
-            // User's profile is completed, redirect to the homepage or another page
-            res.redirect('/quote'); 
+    try {
+        // Query the database to check if the user exists and their profile status
+        const [rows] = await promisePool.query('SELECT * FROM Users WHERE username = ? AND password = ?', [username, password]);
+
+        if (rows.length > 0) {
+            const user = rows[0]; // Assuming there's only one user with the same username/password
+
+             // Store user information in the session
+             req.session.user = user;
+
+            if (user.isProfileCompleted) {
+                // User's profile is completed, redirect to the homepage or another page
+                res.redirect('/quote');
+            } else {
+                // User's profile is not completed, redirect to the complete profile page
+                res.redirect('/profile');
+            }
         } else {
-            // User's profile is not completed, redirect to the complete profile page
-            res.redirect('/profile'); 
+            // User not found in the database, send an invalid message
+            res.status(401).send('Invalid username or password');
         }
-    } else {
-        res.status(401).send('Invalid username or password');
+    } catch (error) {
+        console.error('Error during login:', error);
+        res.status(500).send('Internal server error');
     }
 });
 
@@ -106,8 +129,16 @@ app.get('/quote', (req, res) => {
 
 
 app.get('/profile', (req, res) => {
-    //res.sendFile(__dirname + '/complete-profile.html');
-    res.sendFile(path.join(__dirname, '/public/complete-profile.html'));
+    const user = req.session.user;
+    // Check if the user is logged in (user data is in the session)
+    if (user) {
+        // Render the quote page
+        console.log('User:', user); //Testing purpose, Check what user is logged in
+        res.sendFile(path.join(__dirname, '/public/complete-profile.html'));
+    } else {
+        // User is not logged in, redirect to the login page
+        res.redirect('/login');
+    }
 });
 //implement post save profile attributes to database or array then send them to quote
 /*
@@ -154,5 +185,18 @@ app.get('/history', (req, res) => {
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+});
+
+app.get('/logout', (req, res) => {
+    if (req.session.user) {
+        // Log the username of the user who is logging out
+        console.log(`User '${req.session.user.username}' is logging out`);
+    }
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Error destroying session:', err);
+        }
+        res.redirect('/login'); // Redirect to the login page after logout
+    });
 });
 //module.exports = { app, users };
