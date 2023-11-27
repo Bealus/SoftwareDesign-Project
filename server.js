@@ -4,7 +4,7 @@ const port = 3000;
 const path = require('path')
 const mysql = require('mysql2');
 const session = require('express-session');
-
+const bcrypt = require('bcrypt');
 
 require('dotenv').config(); // Load environment variables from .env file
 
@@ -58,7 +58,12 @@ app.post('/register', async (req, res) => {
         res.status(400).send('All fields are required');
     } else if (password.length < 6) {
         res.status(400).send('Password must be at least 6 characters long');
-    } else {
+    } else if (/^[a-zA-Z0-9!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]+$/.test(password)) {
+        return res.status(400).send('Invalid characters in the password');
+    } else if (username.length > 50) {
+        return res.status(400).send('Username is too long');
+    }
+    else {
         // Check if the username already exists in the database
         try {
             // Check if the username already exists in the database
@@ -68,13 +73,15 @@ app.post('/register', async (req, res) => {
                 return res.status(400).send('Username already taken. Please choose another one.');
             }
     
-            // If the username doesn't exist, insert the new user into the database
+
+            // Store hashed password in DB. When user log in password is checked with hashed password in DB to check if same.
+            const hashedPassword = await bcrypt.hash(password, 10);
+
             await promisePool.query('INSERT INTO Users (username, password, profileComplete) VALUES (?, ?, ?)', [
                 username,
-                password,
-                isProfileCompleted // Assuming the profile is not completed initially
+                hashedPassword,
+                isProfileCompleted 
             ]);
-    
             return res.status(200).send('Registration successful');
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') {
@@ -92,22 +99,32 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-    // Input from the login form stored into username and password.
     const { username, password } = req.body;
 
     try {
-        // Query the database to check if the user exists and their profile status
-        const [rows] = await promisePool.query('SELECT * FROM Users WHERE username = ? AND password = ?', [username, password]);
+        // Query the database to get the hashed password for the provided username
+        const [rows] = await promisePool.query('SELECT * FROM Users WHERE username = ?', [username]);
 
         if (rows.length > 0) {
-            const user = rows[0]; // Assuming there's only one user with the same username/password
+            const user = rows[0];
 
-             // Store user information in the session
-             req.session.user = user;
-             res.redirect('/profile');
-            
+            // Compare the provided password with the hashed password from the database
+            const passwordMatch = await bcrypt.compare(password, user.password);
+            if (passwordMatch) {
+                // Passwords match, store user information in the session
+                req.session.user = user; //Token stores user.
+                if(user.profileComplete === 0) {
+                    res.redirect('/profile');
+                } else {
+                    res.redirect('/quote');
+                }
+               
+            } else {
+                // Passwords do not match, send an invalid message
+                res.status(401).send('Invalid username or password');
+            }
         } else {
-            // User not found in the database, send an invalid message
+            // User not found in the database, send an invalid message - same msg security risk general
             res.status(401).send('Invalid username or password');
         }
     } catch (error) {
@@ -116,19 +133,38 @@ app.post('/login', async (req, res) => {
     }
 });
 
+
 app.get('/quote', (req, res) => {
     
-    //res.sendFile(path.join(__dirname, '/public/Fuel-Quote-Form.html'));
+    //Only authenticated users can access the page.
     const user = req.session.user;
-    // Check if the user is logged in (user data is in the session)
+    
     if (user) {
-        // Render the quote page
         console.log('User:', user); //Testing purpose, Check what user is logged in
         res.sendFile(path.join(__dirname, '/public/Fuel-Quote-Form.html'));
     } else {
         // User is not logged in, redirect to the login page
         res.redirect('/login');
     }
+});
+
+app.post('/quote', async (req, res) => {
+    const userId = req.session.user.id; // Get the user ID from the session
+    const { gallonsRequested, deliveryAddress, deliveryDate, suggestedPrice, totalAmount } = req.body;
+    //Using current user (token user), access the quote DB and set the userID to that ID, then rest to it. Easy access by ID to get user 
+    try {
+        // Insert into quote table with the quote information and userID
+        await promisePool.query(
+            'INSERT INTO FuelQuote (user_id, gallonsRequested, deliveryAddress, deliveryDate, suggestPricePerGallon, totalAmountDue) VALUES (?, ?, ?, ?, ?, ?)',
+            [userId, gallonsRequested, deliveryAddress, deliveryDate, suggestedPrice, totalAmount]
+        );
+        res.redirect('/history');
+    } catch (error) {
+        console.error('quote insert error:', error);
+        res.status(500).send('Internal server error');
+    }
+
+    
 });
 
 
@@ -142,16 +178,19 @@ app.get('/profile', async (req, res) => {
             res.sendFile(path.join(__dirname, '/public/complete-profile.html'));
         } else if (user.profileComplete === 1) {
             // Profile is complete, redirect to the quote page
+            console.log("Access Denied - Profile Completed")
             res.redirect('/quote');
         }
     } else {
         // User is not logged in, redirect to the login page
+        console.log("Access Denied - Profile")
         res.redirect('/login');
     }
 });
 
 app.post('/profile', async (req, res) => {
     const userId = req.session.user.id; // Get the user ID from the session
+    console.log(userId)
     const { fullName, address1, address2, city, state, zipcode } = req.body;
 
     try {
@@ -182,6 +221,7 @@ app.get('/', (req, res) => {
 app.get('/history', (req, res) => {
     //res.sendFile(__dirname + '/complete-profile.html');
     res.sendFile(path.join(__dirname, '/public/history.html'));
+
 });
 
 app.listen(port, () => {
