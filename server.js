@@ -5,6 +5,9 @@ const path = require('path')
 const mysql = require('mysql2');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
+const PricingModule = require('./public/pricing-Module.js');
+
+
 
 require('dotenv').config(); // Load environment variables from .env file
 
@@ -146,11 +149,21 @@ app.get('/quote', (req, res) => {
         // User is not logged in, redirect to the login page
         res.redirect('/login');
     }
+
+    
 });
 
 app.post('/quote', async (req, res) => {
+    //Delivery will be from DB
+    //req.query
     const userId = req.session.user.id; // Get the user ID from the session
-    const { gallonsRequested, deliveryAddress, deliveryDate, suggestedPrice, totalAmount } = req.body;
+    //const { gallonsRequested, deliveryAddress, deliveryDate, suggestedPrice, totalAmount } = req.body;
+    gallonsRequested = req.body.gallonsRequested;
+    deliveryAddress = 0; // Search DataBase
+    deliveryDate = req.body.deliveryDate;
+    suggestedPrice = req.body.suggestedPrice;
+    totalAmount = req.body.totalAmount;
+    //suggestPrice and totalAmount will be inputed from Price Module.
     //Using current user (token user), access the quote DB and set the userID to that ID, then rest to it. Easy access by ID to get user 
     try {
         // Insert into quote table with the quote information and userID
@@ -163,10 +176,79 @@ app.post('/quote', async (req, res) => {
         console.error('quote insert error:', error);
         res.status(500).send('Internal server error');
     }
-
+	
     
 });
 
+// Endpoint for handling the pricing calculation
+app.post('/pricing', async (req, res) => {
+    const { gallonsRequested, deliveryDate } = req.body;
+
+    // Assume userId is available in the session (replace with your actual authentication logic)
+    const userId = req.session.user.id;
+
+    try {
+        const result = await promisePool.query(
+            'SELECT COALESCE(COUNT(*), 0) AS historyCount FROM FuelQuote WHERE user_id = ?',
+            [userId]
+        );
+
+        // Extract historyCount from the result
+        const historyCount = result[0][0].historyCount;
+        //const deliveryAddress = // Only send address1, city, state, zipcode
+        const result1 = await promisePool.query(
+            'SELECT state FROM UserInformation WHERE user_id = ?',
+            [userId]
+        );
+
+        // Extract state from the result
+        const state_ = result1[0][0].state;
+
+        // Create an instance of PricingModule with the provided data
+        const pricingModule = new PricingModule(gallonsRequested, historyCount, state_); // Replace 'TX' with the actual location
+
+        // Calculate suggested price and total amount
+        const suggestedPrice = pricingModule.calculateSuggestedPrice();
+        const totalAmount = pricingModule.calculateTotal();
+
+       const resultZipCode = await promisePool.query(
+            'SELECT zipcode FROM UserInformation WHERE user_id = ?',
+            [userId]
+        );
+
+        // Extract state from the result
+        const zipcode_ = resultZipCode[0][0].zipcode;
+
+        const resultAddress = await promisePool.query(
+            'SELECT address1 FROM UserInformation WHERE user_id = ?',
+            [userId]
+        );
+
+        // Extract state from the result
+        const address1_ = resultAddress[0][0].address1;
+
+        const resultCity = await promisePool.query(
+            'SELECT city FROM UserInformation WHERE user_id = ?',
+            [userId]
+        );
+
+        // Extract state from the result
+        const city_ = resultCity[0][0].city;
+
+        deliveryAddress = address1_ + ', ' + city_ + ', ' + state_ + ', ' + zipcode_;
+    
+        // Send the calculated data back to the client
+        res.json({
+            suggestedPrice: suggestedPrice,
+            totalAmount: totalAmount,
+            deliveryAddress: deliveryAddress,
+        });
+    } catch (error) {
+        console.error('Pricing calculation error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+
+});
 
 app.get('/profile', async (req, res) => {
     const user = req.session.user;
@@ -192,22 +274,28 @@ app.post('/profile', async (req, res) => {
     const userId = req.session.user.id; // Get the user ID from the session
     console.log(userId)
     const { fullName, address1, address2, city, state, zipcode } = req.body;
+    if (!fullName || !address1 || !city || !state || !zipcode || zipcode.length < 5) {
+        res.status(401).send('Invalid Profile: Please provide all required information and ensure the zip code is at least 5 characters long.');
+    } 
+    else {
 
-    try {
-        // Update the userInformation table with the new profile information
-        await promisePool.query(
-            'INSERT INTO userInformation (user_id, fullName, address1, address2, city, state, zipcode) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [userId, fullName, address1, address2, city, state, zipcode]
-        );
+        try {
+            // Update the userInformation table with the new profile information
+            await promisePool.query(
+                'INSERT INTO userInformation (user_id, fullName, address1, address2, city, state, zipcode) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [userId, fullName, address1, address2, city, state, zipcode]
+            );
 
-        // Set isProfileCompleted to true in the Users table
-        await promisePool.query('UPDATE Users SET profileComplete = ? WHERE id = ?', [1, userId]);
+            // Set isProfileCompleted to true in the Users table
+            await promisePool.query('UPDATE Users SET profileComplete = ? WHERE id = ?', [1, userId]);
 
-        // Redirect to another page or send a success message
-        res.redirect('/quote');
-    } catch (error) {
-        console.error('Profile update error:', error);
-        res.status(500).send('Internal server error');
+            // Redirect to another page or send a success message
+            res.redirect('/quote');
+        } catch (error) {
+            console.error('Profile update error:', error);
+            res.status(500).send('Internal server error');
+        }
+
     }
 });
 
@@ -221,6 +309,9 @@ app.get('/', (req, res) => {
 app.get('/history', (req, res) => {
     //res.sendFile(__dirname + '/complete-profile.html');
     res.sendFile(path.join(__dirname, '/public/history.html'));
+    //POSt is going to call all formquotes and display it
+    //- Tabular display of all client quotes in the past. All fields from Fuel Quote are displayed.
+
 
 });
 
@@ -240,4 +331,3 @@ app.get('/logout', (req, res) => {
         res.redirect('/login'); // Redirect to the login page after logout
     });
 });
-//module.exports = { app, users };
