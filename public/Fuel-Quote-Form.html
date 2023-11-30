@@ -43,6 +43,28 @@
         }
 
         input[type="submit"] {
+        width: 105%;
+        padding: 10px;
+        margin-top: 15px; /* Add margin to create space between buttons */
+        border: none;
+        border-radius: 4px;
+        background-color: #E9DEC7;
+        color: #000000;
+        cursor: pointer;
+        }
+
+        input[type="submit"]:hover,
+        #getQuoteButton:hover {
+        background-color: #4285f4; /* Adjust the color to your preference */
+    }
+
+        input[type="submit"]:disabled,
+        #getQuoteButton:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+    }
+
+        #getQuoteButton {
             width: 105%;
             padding: 10px;
             border: none;
@@ -52,14 +74,20 @@
             cursor: pointer;
         }
 
-        input[type="submit"]:hover {
-            background-color: #E9DEC7;
+        #getQuoteButton:hover {
+        background-color: #4285f4; /* Adjust the color to your preference */
+    }
+
+        #getQuoteButton:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
+
     </style>
 </head>
 <body>
 
-<form action="#" method="post" id="fuelQuoteForm">
+    <form action="/quote" method="POST" id="fuelQuoteForm">
     <h2>Fuel Quote Form</h2>
 
     <label for="gallonsRequested">Gallons Requested:</label>
@@ -71,22 +99,82 @@
 
 
     <label for="deliveryDate">Delivery Date:</label>
-    <input type="date" id="deliveryDate" name="deliveryDate">
+    <input type="date" id="deliveryDate" name="deliveryDate" required>
 
 
     <label for="suggestedPrice">Suggested Price / gallon:</label>
     <input type="number" id="suggestedPrice" name="suggestedPrice" readonly>
 
-
     <label for="totalAmount">Total Amount Due:</label>
     <input type="number" id="totalAmount" name="totalAmount" readonly>
 
+    <!-- New "Get Quote" button -->
+    <button type="button" id="getQuoteButton" onclick="getQuote()">Get Quote</button>
 
     <input type="submit" value="Submit">
 </form>
 
 <script>
-    //Script
+    // Function to handle the "Get Quote" button click
+    function getQuote() {
+        // Fetch values from the form
+        const gallonsRequested = document.getElementById('gallonsRequested').value;
+        const deliveryDate = document.getElementById('deliveryDate').value;
+
+        // Check if there are values entered in the form
+        if (gallonsRequested && deliveryDate) {
+            // Make an AJAX call to the Pricing Module (replace with your actual endpoint)
+            fetch('/pricing', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    gallonsRequested: gallonsRequested,
+                    deliveryDate: deliveryDate,
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.deliveryAddress);
+                // Populate the suggested price and total amount fields
+                document.getElementById('suggestedPrice').value = data.suggestedPrice;
+                document.getElementById('totalAmount').value = data.totalAmount;
+                document.getElementById('deliveryAddress').value = data.deliveryAddress;
+                
+                // Enable the "Submit" button
+                document.querySelector('input[type="submit"]').disabled = false;
+            })
+            .catch(error => {
+                console.error('Error fetching quote:', error);
+                // Handle error, show message to the user, etc.
+            });
+        } else {
+            // Values are missing, disable both buttons
+            document.querySelector('input[type="submit"]').disabled = true;
+            document.getElementById('getQuoteButton').disabled = true;
+        }
+    }
+
+    /*
+        // Function to check if parameters are not empty and enable "Get Quote" button
+    function checkParameters() {
+        const gallonsRequested = document.getElementById('gallonsRequested').value;
+        const deliveryDate = document.getElementById('deliveryDate').value;
+
+        // Enable "Get Quote" button only if both parameters are not empty
+        const enableGetQuoteButton = gallonsRequested && deliveryDate;
+        document.getElementById('getQuoteButton').disabled = !enableGetQuoteButton;
+
+        // Initial disable for "Submit" button
+        document.querySelector('input[type="submit"]').disabled = true;
+    }
+
+    // Initial call to disable both buttons on page load
+    checkParameters();
+    */
+
+    
 </script>
 
 </body>
