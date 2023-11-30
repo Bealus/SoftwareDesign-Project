@@ -154,17 +154,10 @@ app.get('/quote', (req, res) => {
 });
 
 app.post('/quote', async (req, res) => {
-    //Delivery will be from DB
-    //req.query
+    
     const userId = req.session.user.id; // Get the user ID from the session
-    //const { gallonsRequested, deliveryAddress, deliveryDate, suggestedPrice, totalAmount } = req.body;
-    gallonsRequested = req.body.gallonsRequested;
-    deliveryAddress = 0; // Search DataBase
-    deliveryDate = req.body.deliveryDate;
-    suggestedPrice = req.body.suggestedPrice;
-    totalAmount = req.body.totalAmount;
-    //suggestPrice and totalAmount will be inputed from Price Module.
-    //Using current user (token user), access the quote DB and set the userID to that ID, then rest to it. Easy access by ID to get user 
+    const { gallonsRequested, deliveryAddress, deliveryDate, suggestedPrice, totalAmount } = req.body;
+    
     try {
         // Insert into quote table with the quote information and userID
         await promisePool.query(
